@@ -378,6 +378,8 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> with TickerProvid
     final double lLikelihood = (landmarks[11]['likelihood'] as num?)?.toDouble() ?? 0.0;
     final double rLikelihood = (landmarks[12]['likelihood'] as num?)?.toDouble() ?? 0.0;
     
+    int sIdx = 11, eIdx = 13, wIdx = 15; // Left arm default
+    
     if (rLikelihood > lLikelihood) {
       sIdx = 12; eIdx = 14; wIdx = 16;
     }
