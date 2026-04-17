@@ -539,14 +539,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> with TickerProvid
             child: Text(widget.exercise.toUpperCase(), 
               style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1)),
           ),
-          GestureDetector(
-            onTap: _flipCamera,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.greenAccent, borderRadius: BorderRadius.circular(20)),
-              child: const Icon(Icons.flip_camera_ios_rounded, color: Colors.black, size: 20),
-            ),
-          ),
+          const SizedBox(width: 40), // Placeholder to keep title centered
         ],
       ),
     );
@@ -631,7 +624,19 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> with TickerProvid
                 _toggleRecording
               ),
               const SizedBox(width: 12),
-              _controlBtn("FINISH", Icons.check_rounded, Colors.tealAccent.shade700, Colors.black, _finishWorkout),
+               _controlBtn("FINISH", Icons.check_rounded, Colors.tealAccent.shade700, Colors.black, _finishWorkout),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _controlBtn(
+                "FLIP CAMERA", 
+                Icons.flip_camera_ios_rounded, 
+                Colors.white.withOpacity(0.2), 
+                Colors.white, 
+                _flipCamera
+              ),
             ],
           ),
         ],
@@ -693,14 +698,12 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> with TickerProvid
         child: SizedBox(
           width: _cameraController!.value.previewSize!.height,
           height: _cameraController!.value.previewSize!.width,
-          child: Transform(
-            alignment: Alignment.center,
-            transform: Matrix4.identity()..scale(isFront ? -1.0 : 1.0, 1.0, 1.0),
             child: ValueListenableBuilder<List<dynamic>>(
               valueListenable: _landmarkNotifier,
-              builder: (context, data, _) => CustomPaint(painter: _PosePainter(data, _isCorrectPosture, _incorrectIndices, _angle)),
+              builder: (context, data, _) => CustomPaint(
+                painter: _PosePainter(data, _isCorrectPosture, _incorrectIndices, _angle, isFront),
+              ),
             ),
-          ),
         ),
       ),
     );
@@ -858,8 +861,9 @@ class _PosePainter extends CustomPainter {
   final bool isCorrect;
   final List<int> incorrectIndices;
   final double latestAngle;
+  final bool isMirrored;
 
-  _PosePainter(this.landmarks, this.isCorrect, this.incorrectIndices, this.latestAngle);
+  _PosePainter(this.landmarks, this.isCorrect, this.incorrectIndices, this.latestAngle, this.isMirrored);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -868,7 +872,10 @@ class _PosePainter extends CustomPainter {
     final List<Offset> points = landmarks.map((l) {
       double x = (l['x'] as num?)?.toDouble() ?? 0.0;
       double y = (l['y'] as num?)?.toDouble() ?? 0.0;
-      return Offset(x * size.width, y * size.height);
+      
+      // MIRRORING FIX: If in selfie mode, mirrors the X coordinate so right is right and left is left
+      double finalX = isMirrored ? (1.0 - x) : x;
+      return Offset(finalX * size.width, y * size.height);
     }).toList();
 
     void drawSimpleLine(int start, int end) {
