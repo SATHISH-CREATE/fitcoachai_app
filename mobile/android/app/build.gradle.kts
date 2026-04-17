@@ -39,9 +39,9 @@ android {
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
             
-            // 🚀 Ensure MediaPipe and Camera don't get stripped out in Release mode
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // 🚀 MediaPipe Safe Mode: Disable shrinking/obfuscation to prevent crashes
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android.txt"),
                 "proguard-rules.pro"
