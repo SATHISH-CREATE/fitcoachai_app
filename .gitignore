@@ -1,0 +1,30 @@
+# Python
+backend/venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+backend/.env
+
+# Flutter
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/build/
+mobile/ios/Flutter/.last_build_id
+mobile/ios/Flutter/GeneratedConfig.plist
+mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/Flutter.podspec
+mobile/ios/GeneratedPluginRegistrant.h
+mobile/ios/GeneratedPluginRegistrant.m
+mobile/.pub-cache/
+mobile/.pub/
+mobile/android/local.properties
+mobile/android/key.properties
+mobile/android/app/src/main/res/values/strings.xml
+
+# OS
+.DS_Store
+Thumbs.db
