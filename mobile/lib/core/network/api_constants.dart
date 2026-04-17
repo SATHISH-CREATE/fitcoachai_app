@@ -1,33 +1,19 @@
 import 'package:flutter/foundation.dart';
 
 class ApiConstants {
+  // Production URL for Render Free Tier
+  static const String liveBackendUrl = 'https://fitcoachai-app.onrender.com';
+
   static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://192.168.31.146:8086'; 
-    }
-    
-    // Android Handling
-    if (defaultTargetPlatform == TargetPlatform.android) {
-       // If you are using a physical device, this MUST be your computer's IP
-       // If you are using an emulator, it should be '10.0.2.2'
-       // Current user's PC IP is: 192.168.31.146
-       return 'http://192.168.31.146:8086'; 
-    }
-
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      // For iOS simulator use 127.0.0.1, for physical iOS use machine IP
-      return 'http://192.168.31.146:8086';
-    }
-
-    return 'http://192.168.31.146:8086';
+    // We now use the Render live link for all platforms to ensure cloud functionality
+    return liveBackendUrl;
   }
 
-  // Common Backend IPs for debugging
-  static const String emulatorIP = 'http://192.168.31.146:8086';
+  // Debugging IPs (Pre-configured for local testing if needed)
   static const String machineIP = 'http://192.168.31.146:8086';
-  static const String localIP = 'http://192.168.31.146:8086';
+  static const String emulatorIP = 'http://10.0.2.2:8086';
 
-
+  // API Endpoints
   static const String chat = '/chat';
   static const String generateDiet = '/generate_diet';
   static const String processLandmarks = '/process_landmarks';
