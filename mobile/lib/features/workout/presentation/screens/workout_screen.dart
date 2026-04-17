@@ -70,8 +70,14 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> with TickerProvid
   void initState() {
     super.initState();
     _feedbackAnim = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
-    _initCamera();
-    ApiService.resetSession();
+    
+    // Defer initialization slightly to ensure build context is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initCamera();
+      final userId = ref.read(authProvider).user?.id;
+      ApiService.resetSession(userId: userId);
+    });
+    
     _initVoiceCommandListener();
   }
 
@@ -130,6 +136,14 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> with TickerProvid
 
   Future<void> _initCamera() async {
     try {
+      // 🚨 CRITICAL: Request permissions FIRST to prevent native crash
+      final cameraStatus = await Permission.camera.request();
+      final micStatus = await Permission.microphone.request();
+
+      if (!cameraStatus.isGranted) {
+        throw 'Camera permission is required to analyze your workout.';
+      }
+
       final cameras = await availableCameras();
       if (cameras.isEmpty) throw 'No cameras found';
       
@@ -142,12 +156,12 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> with TickerProvid
         _cameraController = CameraController(
           front, 
           ResolutionPreset.low, 
-          enableAudio: true,
+          enableAudio: micStatus.isGranted,
           imageFormatGroup: kIsWeb ? null : (Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888),
         );
         await _cameraController!.initialize();
       } catch (e) {
-        // Fallback: If enableAudio fails (e.g. microphone permission denied), initialize without audio.
+        debugPrint('CAMERA DEBUG: Primary init failed, trial fallback: $e');
         _cameraController = CameraController(
           front, 
           ResolutionPreset.low, 
@@ -360,10 +374,11 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> with TickerProvid
     
     // Quick local angle calculation for visual display
     // Uses the same logic as backend but purely for UI smoothing
-    int sIdx = 11, eIdx = 13, wIdx = 15; // Left arm default
+    // Pick the side that is more visible (Safe Compare)
+    final double lLikelihood = (landmarks[11]['likelihood'] as num?)?.toDouble() ?? 0.0;
+    final double rLikelihood = (landmarks[12]['likelihood'] as num?)?.toDouble() ?? 0.0;
     
-    // Pick the side that is more visible
-    if (landmarks[12]['likelihood'] > landmarks[11]['likelihood']) {
+    if (rLikelihood > lLikelihood) {
       sIdx = 12; eIdx = 14; wIdx = 16;
     }
     

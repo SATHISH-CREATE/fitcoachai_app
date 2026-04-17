@@ -403,12 +403,13 @@ class ApiService {
     return null;
   }
 
-  static Future<void> resetSession() async {
+  static Future<void> resetSession({String? userId}) async {
     try {
       final url = await getBaseUrl();
       await http.post(
         Uri.parse('$url/reset'),
         headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'user_id': userId ?? 'default'}),
       );
     } catch (e) {
       // ignore
