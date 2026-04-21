@@ -2,8 +2,15 @@ from .base import BaseRule
 
 class SquatRule(BaseRule):
     def process(self, landmarks):
-        # Indices: 23 (H), 25 (K), 27 (A)
-        if not self.is_visible(landmarks, [23, 25, 27], 0.4):
+        # MediaPipe Indices:
+        # Left side: 23 (H), 25 (K), 27 (A)
+        # Right side: 24 (H), 26 (K), 28 (A)
+        
+        # Check visibility for both sides
+        l_vis = self.is_visible(landmarks, [23, 25, 27], 0.3)
+        r_vis = self.is_visible(landmarks, [24, 26, 28], 0.3)
+        
+        if not l_vis and not r_vis:
             return {
                 "counter": self.counter,
                 "correct_reps": self.correct_reps,
@@ -12,21 +19,28 @@ class SquatRule(BaseRule):
                 "incorrect_indices": [],
                 "visibility_ok": False,
                 "current_angle": 0,
-                "target_angle": 100
+                "target_angle": 120
             }
 
-        hip = landmarks[23]
-        knee = landmarks[25]
-        ankle = landmarks[27]
+        # Choose best side
+        l_score = landmarks[25].visibility if l_vis else 0
+        r_score = landmarks[26].visibility if r_vis else 0
         
-        # Movement Consistency: In a squat, the hips should move more than the wrists/elbows
-        if not self.validate_motion(landmarks, [23], [13, 14, 15, 16], sensitivity=0.015):
+        if r_score > l_score:
+            hip, knee, ankle = landmarks[24], landmarks[26], landmarks[28]
+            side_indices = [24, 26, 28]
+        else:
+            hip, knee, ankle = landmarks[23], landmarks[25], landmarks[27]
+            side_indices = [23, 25, 27]
+        
+        # Movement Consistency: Hips move more than upper body
+        if not self.validate_motion(landmarks, [side_indices[0]], [11, 12, 13, 14], sensitivity=0.015):
             self.feedback = "Focus on the squat movement"
         
         angle = self.calculate_angle(hip, knee, ankle)
         
         # State machine
-        if angle > 160: # Standing straight
+        if angle > 158: # Standing straight - relaxed from 160
             if self.stage == 'down':
                 self.counter += 1
                 self.correct_reps += 1
@@ -35,15 +49,15 @@ class SquatRule(BaseRule):
             
         # Form Check: Knee Stability
         k_a_dist = abs(knee.x - ankle.x)
-        is_stable = k_a_dist < 0.15 
+        is_stable = k_a_dist < 0.18 # More tolerant 
         
         incorrect_indices = []
-        if not is_stable and angle < 110: 
-            incorrect_indices = [25]
+        if not is_stable and angle < 120: 
+            incorrect_indices = [side_indices[1]]
             self.feedback = "Knees too far forward!"
 
-        if angle < 110 and self.stage == 'up':
-            self.stage = "down" # Always allow the state change
+        if angle < 120 and self.stage == 'up': # Relaxed from 110
+            self.stage = "down"
             if is_stable:
                 self.feedback = "Good depth, now push up!"
             else:
@@ -58,8 +72,8 @@ class SquatRule(BaseRule):
             "stage": self.stage,
             "feedback": self.feedback,
             "incorrect_indices": incorrect_indices,
-            "current_angle": angle,
-            "target_angle": 100
+            "current_angle": int(angle),
+            "target_angle": 120
         }
 
 

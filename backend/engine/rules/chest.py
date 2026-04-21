@@ -2,8 +2,15 @@ from .base import BaseRule
 
 class PushupRule(BaseRule):
     def process(self, landmarks):
-        # Indices: 11 (S), 13 (E), 15 (W)
-        if not self.is_visible(landmarks, [11, 13, 15], 0.4):
+        # MediaPipe Indices:
+        # Left side: 11 (S), 13 (E), 15 (W), 23 (H)
+        # Right side: 12 (S), 14 (E), 16 (W), 24 (H)
+        
+        # Check visibility for both sides
+        l_vis = self.is_visible(landmarks, [11, 13, 15], 0.3)
+        r_vis = self.is_visible(landmarks, [12, 14, 16], 0.3)
+        
+        if not l_vis and not r_vis:
             return {
                 "counter": self.counter,
                 "correct_reps": self.correct_reps,
@@ -12,15 +19,24 @@ class PushupRule(BaseRule):
                 "incorrect_indices": [],
                 "visibility_ok": False,
                 "current_angle": 0,
-                "target_angle": 90
+                "target_angle": 110
             }
 
-        shoulder = landmarks[11]
-        elbow = landmarks[13]
-        wrist = landmarks[15]
+        # Choose the best side based on visibility likelihood
+        l_score = landmarks[13].visibility if l_vis else 0
+        r_score = landmarks[14].visibility if r_vis else 0
+        
+        if r_score > l_score:
+            shoulder, elbow, wrist, hip = landmarks[12], landmarks[14], landmarks[16], landmarks[24]
+            side_indices = [12, 14, 16, 24]
+            knee = landmarks[26]
+        else:
+            shoulder, elbow, wrist, hip = landmarks[11], landmarks[13], landmarks[15], landmarks[23]
+            side_indices = [11, 13, 15, 23]
+            knee = landmarks[25]
 
         # Movement Consistency: In a pushup, the body moves but the hands are fixed on floor
-        if not self.validate_motion(landmarks, [11, 23], [15, 16], sensitivity=0.01):
+        if not self.validate_motion(landmarks, [side_indices[0], side_indices[3]], [side_indices[2]], sensitivity=0.01):
             self.feedback = "Keep your hands firm on the ground"
         
         angle = self.calculate_angle(shoulder, elbow, wrist)
@@ -28,14 +44,14 @@ class PushupRule(BaseRule):
         # Form Check: Back Alignment
         is_straight = True
         incorrect_indices = []
-        if self.is_visible(landmarks, [11, 23, 25], 0.5):
-            back_angle = self.calculate_angle(landmarks[11], landmarks[23], landmarks[25])
+        if self.is_visible(landmarks, [side_indices[0], side_indices[3]], 0.5):
+            back_angle = self.calculate_angle(shoulder, hip, knee)
             if back_angle < 155:
                 is_straight = False
                 self.feedback = "Keep back straight!"
-                incorrect_indices = [23]
+                incorrect_indices = [side_indices[3]]
 
-        if angle > 160: # Full extension
+        if angle > 155: # Full extension - relaxed from 160
             if self.stage == "down":
                 self.counter += 1
                 if is_straight:
@@ -45,7 +61,7 @@ class PushupRule(BaseRule):
                     self.feedback = "Counted. Keep back straight!"
             self.stage = "up"
 
-        if angle < 95 and self.stage == 'up': # Require deeper pushup
+        if angle < 110 and self.stage == 'up': # Require deeper pushup - relaxed from 95
             self.stage = "down"
             if is_straight:
                 self.feedback = "Perfect depth! Push up."
@@ -57,7 +73,7 @@ class PushupRule(BaseRule):
             "feedback": self.feedback,
             "incorrect_indices": incorrect_indices,
             "current_angle": int(angle),
-            "target_angle": 90
+            "target_angle": 110
         }
 
 class ChestPressRule(BaseRule):

@@ -171,16 +171,19 @@ class PoseAnalyzer:
         
         # Calculate vertical standing check (hips lower than shoulders on screen)
         # Using 3D Y-axis primary distance
-        # Calculate vertical standing check (hips lower than shoulders on screen)
-        # Using 3D Y-axis primary distance
-        is_horizontal = abs(l_shldr.y - l_hip.y) < 0.45 
+        # Calculate vertical orientation based on the ratio of vertical distance to body length
+        # This is more robust than a fixed 0.45 threshold which depends on distance to camera
+        body_len = self.get_distance(l_shldr, l_ankle) if len(landmarks) > 28 else 1.0
+        dy_shldr_hip = abs(l_shldr.y - l_hip.y)
         
-        # If the Z distance is significant, the user might be leaning or lying down
-        # at an angle. To be robust, we treat "horizontal" as being oriented parallel 
-        # to the floor in 3D space. relaxed to 0.7 to allow leaning
+        # If the vertical distance between shoulder and hip is less than 25% of body length, 
+        # the person is likely lying down (horizontal).
+        is_horizontal = dy_shldr_hip < (body_len * 0.25)
+        
+        # Fallback for depth-heavy views (User lying towards/away from camera)
         depth_drift = abs(l_shldr.z - l_hip.z)
-        if depth_drift > 0.7:
-            is_horizontal = True # User is lying down along the camera axis
+        if depth_drift > 0.6:
+            is_horizontal = True 
         
         horizontal_ex = ["push-up", "pushup", "plank", "bench", "row", "crunch", "twist"]
         if any(x in name for x in horizontal_ex) and not is_horizontal:
